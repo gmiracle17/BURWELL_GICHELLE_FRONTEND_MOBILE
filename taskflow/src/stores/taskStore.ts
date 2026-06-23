@@ -1,17 +1,9 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 
-export interface Task {
-  id: number
-  name: string
-  done: boolean
-  dueDate: string | null
-  priority: 'Low' | 'Medium' | 'High'
-}
-
 export const useTaskStore = defineStore('tasks', () => {
 
-  const tasks  = ref<Task[]>([])
+  const tasks  = ref([])
   const nextId = ref(1)
 
   // Count for statistics
@@ -34,7 +26,7 @@ export const useTaskStore = defineStore('tasks', () => {
   }
 
   // Edit function for task name and dueDate
-  function editTask(id: number, updates: Partial<Pick<Task, 'name' | 'dueDate'>>) {
+  function editTask(id, updates) {
     const task = tasks.value.find(task => task.id === id)
     if (!task) return
 
@@ -42,10 +34,6 @@ export const useTaskStore = defineStore('tasks', () => {
     if (updates.name !== undefined) {
       if (!updates.name.trim()) return   // guard against empty name
       task.name = updates.name.trim()
-    }
-    // Edit date
-    if (updates.dueDate !== undefined) {
-      task.dueDate = updates.dueDate     // pass null to clear the date
     }
   }
 
@@ -79,4 +67,4 @@ export const useTaskStore = defineStore('tasks', () => {
     setPriority 
   }
 
-})
+}, { persist: true })

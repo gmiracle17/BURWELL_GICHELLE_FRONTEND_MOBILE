@@ -13,35 +13,20 @@
       </ion-header>
 
       <!-- Search Bar -->
-      <ion-searchbar
-        v-model="searchQuery"
-        placeholder="Search completed tasks..."
-        :debounce="300"
-      ></ion-searchbar>
+      <ion-searchbar v-model="searchQuery" placeholder="Search completed tasks..." :debounce="300"></ion-searchbar>
 
       <!-- Completed Task List -->
       <ion-list v-if="filteredCompletedTasks.length > 0">
         <ion-item-sliding v-for="task in filteredCompletedTasks" :key="task.id">
           <ion-item>
-            <ion-checkbox
-              slot="start"
-              :checked="task.done"
-              @ionChange="toggleTask(task.id)"
-            ></ion-checkbox>
+            <ion-checkbox slot="start" :checked="task.done" @ionChange="toggleTask(task.id)"></ion-checkbox>
             
             <ion-label>
               <h2 class="task-done">{{ task.name }}</h2>
-              <ion-badge :color="getPriorityColor(task.priority)">
-                {{ task.priority }}
-              </ion-badge>
+              <ion-badge :color="getPriorityColor(task.priority)"> {{ task.priority }}</ion-badge>
             </ion-label>
 
-            <ion-button
-              slot="end"
-              fill="clear"
-              color="danger"
-              @click="confirmDelete(task.id)"
-            >
+            <ion-button slot="end" fill="clear" color="danger" @click="confirmDelete(task.id)">
               <ion-icon :icon="trashOutline"></ion-icon>
             </ion-button>
           </ion-item>

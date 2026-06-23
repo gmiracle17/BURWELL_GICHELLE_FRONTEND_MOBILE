@@ -1,42 +1,3 @@
-<script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { storeToRefs } from 'pinia'
-import { useUserStore } from '@/stores/userStore'
-import { 
-  IonPage, 
-  IonContent, 
-  IonCard, 
-  IonCardHeader, 
-  IonCardTitle, 
-  IonCardSubtitle, 
-  IonCardContent,
-  IonItem,
-  IonLabel,
-  IonInput,
-  IonButton,
-  IonText
-} from '@ionic/vue'
-
-const router = useRouter()
-const userStore = useUserStore()
-const { isLoggedIn } = storeToRefs(userStore)
-const { login } = userStore
-
-const nameInput = ref('')
-const error = ref('')
-
-function handleLogin() {
-  if (!nameInput.value.trim()) {
-    error.value = 'Please enter your name.'
-    return
-  }
-  error.value = ''
-  login(nameInput.value.trim())
-  router.push('/tabs/tab1')        
-}
-</script>
-
 <template>
   <ion-page>
     <ion-content :fullscreen="true" class="ion-padding">
@@ -82,6 +43,45 @@ function handleLogin() {
     </ion-content>
   </ion-page>
 </template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import { useUserStore } from '@/stores/userStore'
+import { 
+  IonPage, 
+  IonContent, 
+  IonCard, 
+  IonCardHeader, 
+  IonCardTitle, 
+  IonCardSubtitle, 
+  IonCardContent,
+  IonItem,
+  IonLabel,
+  IonInput,
+  IonButton,
+  IonText
+} from '@ionic/vue'
+
+const router = useRouter()
+const userStore = useUserStore()
+const { isLoggedIn } = storeToRefs(userStore)
+const { login } = userStore
+
+const nameInput = ref('')
+const error = ref('')
+
+function handleLogin() {
+  if (!nameInput.value.trim()) {
+    error.value = 'Please enter your name.'
+    return
+  }
+  error.value = ''
+  login(nameInput.value.trim())
+  router.push('/tabs/tab1')        
+}
+</script>
 
 <style scoped>
 .login-container {

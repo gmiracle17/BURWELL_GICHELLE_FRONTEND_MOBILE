@@ -19,31 +19,16 @@
         :debounce="300"
       ></ion-searchbar>
 
-      <!-- Priority Filter Chips -->
+      <!-- Status Filters with Counts -->
       <div class="filter-container">
-        <ion-chip
-          :color="selectedPriority === 'All' ? 'primary' : 'medium'"
-          @click="selectedPriority = 'All'"
-        >
-          <ion-label>All</ion-label>
+        <ion-chip :color="selectedStatus === 'Total' ? 'primary' : 'medium'" @click="selectedStatus = 'Total'">
+          <ion-label>Total ({{ taskStore.totalCount }})</ion-label>
         </ion-chip>
-        <ion-chip
-          :color="selectedPriority === 'Low' ? 'success' : 'medium'"
-          @click="selectedPriority = 'Low'"
-        >
-          <ion-label>Low</ion-label>
+        <ion-chip :color="selectedStatus === 'Pending' ? 'warning' : 'medium'" @click="selectedStatus = 'Pending'">
+          <ion-label>Pending ({{ taskStore.pendingCount }})</ion-label>
         </ion-chip>
-        <ion-chip
-          :color="selectedPriority === 'Medium' ? 'warning' : 'medium'"
-          @click="selectedPriority = 'Medium'"
-        >
-          <ion-label>Medium</ion-label>
-        </ion-chip>
-        <ion-chip
-          :color="selectedPriority === 'High' ? 'danger' : 'medium'"
-          @click="selectedPriority = 'High'"
-        >
-          <ion-label>High</ion-label>
+        <ion-chip :color="selectedStatus === 'Completed' ? 'success' : 'medium'" @click="selectedStatus = 'Completed'">
+          <ion-label>Completed ({{ taskStore.doneCount }})</ion-label>
         </ion-chip>
       </div>
 
@@ -51,26 +36,19 @@
       <ion-list v-if="filteredTasks.length > 0">
         <ion-item-sliding v-for="task in filteredTasks" :key="task.id">
           <ion-item>
-            <ion-checkbox
-              slot="start"
-              :checked="task.done"
-              @ionChange="toggleTask(task.id)"
-            ></ion-checkbox>
+            <ion-checkbox slot="start" :checked="task.done" @ionChange="toggleTask(task.id)"></ion-checkbox>
             
             <ion-label>
               <h2 :class="{ 'task-done': task.done }">{{ task.name }}</h2>
-              <ion-badge :color="getPriorityColor(task.priority)">
-                {{ task.priority }}
-              </ion-badge>
+              <ion-badge :color="getPriorityColor(task.priority)"> {{ task.priority }} </ion-badge>
             </ion-label>
 
-            <ion-button
-              slot="end"
-              fill="clear"
-              color="danger"
-              @click="confirmDelete(task.id)"
-            >
-              REMOVE
+            <ion-button slot="end" fill="clear" color="primary" @click="openEditTaskModal(task)">
+              <ion-icon :icon="createOutline"></ion-icon>
+            </ion-button>
+            
+            <ion-button slot="end" fill="clear" color="danger" @click="confirmDelete(task.id)">
+              <ion-icon :icon="trashOutline"></ion-icon>
             </ion-button>
           </ion-item>
 
@@ -85,10 +63,10 @@
       <!-- Empty State -->
       <div v-else class="empty-state">
         <ion-icon :icon="checkmarkDoneOutline" size="large"></ion-icon>
-        <p>{{ searchQuery || selectedPriority !== 'All' ? 'No tasks found' : 'No tasks yet. Add one to get started!' }}</p>
+        <p>{{ searchQuery || selectedStatus !== 'Total' ? 'No tasks found' : 'No tasks yet. Add one to get started!' }}</p>
       </div>
 
-      <!-- Floating Action Button -->
+      <!-- Floating Action Button (Add Task) -->
       <ion-fab slot="fixed" vertical="bottom" horizontal="end">
         <ion-fab-button @click="openAddTaskModal">
           <ion-icon :icon="addOutline"></ion-icon>
@@ -101,18 +79,16 @@
           <ion-toolbar>
             <ion-title>New Task</ion-title>
             <ion-buttons slot="end">
-              <ion-button @click="closeAddTaskModal">Close</ion-button>
+              <ion-button @click="closeAddTaskModal">
+                <ion-icon :icon="closeOutline"></ion-icon>
+              </ion-button>
             </ion-buttons>
           </ion-toolbar>
         </ion-header>
         <ion-content class="ion-padding">
           <ion-item>
             <ion-label position="stacked">Task Name</ion-label>
-            <ion-input
-              v-model="newTaskName"
-              placeholder="Enter task name"
-              @keyup.enter="addNewTask"
-            ></ion-input>
+            <ion-input v-model="newTaskName" placeholder="Enter task name" @keyup.enter="addNewTask"></ion-input>
           </ion-item>
 
           <ion-item>
@@ -124,21 +100,43 @@
             </ion-select>
           </ion-item>
 
-          <ion-item>
-            <ion-label position="stacked">Due Date</ion-label>
-            <ion-datetime-button datetime="datetime"></ion-datetime-button>
-            <ion-modal :keep-contents-mounted="true">
-              <ion-datetime
-                id="datetime"
-                v-model="newTaskDueDate"
-                presentation="date"
-              ></ion-datetime>
-            </ion-modal>
-          </ion-item>
-
           <ion-button expand="block" @click="addNewTask" class="ion-margin-top">
             <ion-icon slot="start" :icon="addOutline"></ion-icon>
             Add Task
+          </ion-button>
+        </ion-content>
+      </ion-modal>
+
+      <!-- Edit Task Modal -->
+      <ion-modal :is-open="isEditModalOpen" @didDismiss="closeEditTaskModal">
+        <ion-header>
+          <ion-toolbar>
+            <ion-title>Edit Task</ion-title>
+            <ion-buttons slot="end">
+              <ion-button @click="closeEditTaskModal">
+                <ion-icon :icon="closeOutline"></ion-icon>
+              </ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          <ion-item>
+            <ion-label position="stacked">Task Name</ion-label>
+            <ion-input v-model="editTaskName" placeholder="Enter task name" @keyup.enter="saveEditTask"></ion-input>
+          </ion-item>
+
+          <ion-item>
+            <ion-label position="stacked">Priority</ion-label>
+            <ion-select v-model="editTaskPriority" placeholder="Select priority">
+              <ion-select-option value="Low">Low</ion-select-option>
+              <ion-select-option value="Medium">Medium</ion-select-option>
+              <ion-select-option value="High">High</ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <ion-button expand="block" @click="saveEditTask" class="ion-margin-top">
+            <ion-icon slot="start" :icon="saveOutline"></ion-icon>
+            Save Changes
           </ion-button>
         </ion-content>
       </ion-modal>
@@ -173,15 +171,15 @@ import {
   IonItemSliding,
   IonItemOptions,
   IonItemOption,
-  IonDatetime,
-  IonDatetimeButton,
   alertController
 } from '@ionic/vue';
 import {
   addOutline,
   trashOutline,
   checkmarkDoneOutline,
-  calendarOutline
+  createOutline,
+  saveOutline,
+  closeOutline,
 } from 'ionicons/icons';
 import { useTaskStore } from '@/stores/taskStore';
 
@@ -189,13 +187,20 @@ const taskStore = useTaskStore();
 
 // Search and filter state
 const searchQuery = ref('');
-const selectedPriority = ref('All');
+const selectedStatus = ref<'Total' | 'Pending' | 'Completed'>('Total');
 
-// Modal state
+// Add task modal state
 const isModalOpen = ref(false);
 const newTaskName = ref('');
 const newTaskPriority = ref<'Low' | 'Medium' | 'High'>('Low');
 const newTaskDueDate = ref('');
+
+// Edit task modal state
+const isEditModalOpen = ref(false);
+const editTaskId = ref<number | null>(null);
+const editTaskName = ref('');
+const editTaskPriority = ref<'Low' | 'Medium' | 'High'>('Low');
+const editTaskDueDate = ref('');
 
 // Computed filtered tasks
 const filteredTasks = computed(() => {
@@ -209,10 +214,13 @@ const filteredTasks = computed(() => {
     );
   }
 
-  // Filter by priority
-  if (selectedPriority.value !== 'All') {
-    filtered = filtered.filter(task => task.priority === selectedPriority.value);
+  // Filter by status
+  if (selectedStatus.value === 'Pending') {
+    filtered = filtered.filter(task => !task.done);
+  } else if (selectedStatus.value === 'Completed') {
+    filtered = filtered.filter(task => task.done);
   }
+  // 'Total' shows all tasks, no additional filtering needed
 
   return filtered;
 });
@@ -273,6 +281,36 @@ const confirmDelete = async (id: number) => {
   await alert.present();
 };
 
+// Open edit task modal
+const openEditTaskModal = (task: any) => {
+  editTaskId.value = task.id;
+  editTaskName.value = task.name;
+  editTaskPriority.value = task.priority;
+  editTaskDueDate.value = task.dueDate || '';
+  isEditModalOpen.value = true;
+};
+
+// Close edit task modal
+const closeEditTaskModal = () => {
+  isEditModalOpen.value = false;
+  editTaskId.value = null;
+  editTaskName.value = '';
+  editTaskPriority.value = 'Low';
+  editTaskDueDate.value = '';
+};
+
+// Save edited task
+const saveEditTask = () => {
+  if (editTaskId.value !== null && editTaskName.value.trim()) {
+    taskStore.editTask(editTaskId.value, {
+      name: editTaskName.value,
+      dueDate: editTaskDueDate.value || null
+    });
+    taskStore.setPriority(editTaskId.value, editTaskPriority.value);
+    closeEditTaskModal();
+  }
+};
+
 // Get priority color
 const getPriorityColor = (priority: string) => {
   switch (priority) {
@@ -286,20 +324,45 @@ const getPriorityColor = (priority: string) => {
       return 'medium';
   }
 };
-
-// Format date
-const formatDate = (dateString: string) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
-};
 </script>
 
 <style scoped>
+.stats-container {
+  display: flex;
+  justify-content: space-around;
+  padding: 16px;
+  background: var(--ion-color-light);
+  margin: 0 16px 8px 16px;
+  border-radius: 12px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stat-item ion-icon {
+  font-size: 28px;
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-value {
+  font-size: 1.25rem;
+  font-weight: bold;
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--ion-color-medium);
+  text-transform: uppercase;
+}
+
 .filter-container {
   display: flex;
   gap: 8px;
@@ -348,5 +411,9 @@ ion-badge {
 
 ion-fab {
   margin: 16px;
+}
+
+ion-button ion-icon {
+  font-size: 1.5rem;
 }
 </style>
