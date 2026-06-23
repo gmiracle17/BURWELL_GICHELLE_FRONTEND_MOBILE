@@ -38,7 +38,7 @@
           <ion-item>
             <ion-checkbox slot="start" :checked="task.done" @ionChange="toggleTask(task.id)"></ion-checkbox>
             
-            <ion-label>
+            <ion-label @click="goToDetail(task.id)">
               <h2 :class="{ 'task-done': task.done }">{{ task.name }}</h2>
               <ion-badge :color="getPriorityColor(task.priority)"> {{ task.priority }} </ion-badge>
             </ion-label>
@@ -171,6 +171,7 @@ import {
   IonItemSliding,
   IonItemOptions,
   IonItemOption,
+  IonRouterOutlet,
   alertController
 } from '@ionic/vue';
 import {
@@ -182,8 +183,14 @@ import {
   closeOutline,
 } from 'ionicons/icons';
 import { useTaskStore } from '@/stores/taskStore';
+import { useRouter } from 'vue-router';
 
 const taskStore = useTaskStore();
+const router = useRouter();
+
+const goToDetail = (id: number) => {
+  router.push(`/tabs/tab1/${id}`)
+}
 
 // Search and filter state
 const searchQuery = ref('');

@@ -26,9 +26,13 @@ const routes: Array<RouteRecordRaw> = [
       {
         path: 'tab3',
         component: () => import('@/views/Tab3Page.vue')
+      },
+      {
+        path: 'tab1/:id',
+        component: () => import('@/views/TaskDetailPage.vue')
       }
     ]
-  }
+  },
 ]
 
 const router = createRouter({
