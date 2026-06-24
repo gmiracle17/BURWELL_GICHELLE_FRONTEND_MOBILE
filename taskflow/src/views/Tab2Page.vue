@@ -22,18 +22,18 @@
 
       <!-- Completed Task List -->
       <ion-list v-if="filteredCompletedTasks.length > 0">
-        <ion-item-sliding v-for="task in filteredCompletedTasks" :key="task.id">
+        <ion-item-sliding v-for="task in filteredCompletedTasks" :key="task.id" :ref="el => setSlidingRef(task.id, el)">
           <ion-item>
             <ion-checkbox slot="start" :checked="task.done" @ionChange="toggleTask(task.id)"></ion-checkbox>
             
-            <ion-avatar v-if="task.photo != null" class="task-avatar">
+            <ion-avatar v-if="task.photo != null" class="task-avatar" @click="goToDetail(task.id)">
               <img :src="task.photo" alt="" />
             </ion-avatar>
-            <ion-avatar v-else class="task-avatar">
+            <ion-avatar v-else class="task-avatar" @click="goToDetail(task.id)">
               <img :src="defaultImage" alt="" />
             </ion-avatar>
             
-            <ion-label>
+            <ion-label @click="goToDetail(task.id)">
               <h2 class="task-done">{{ task.name }}</h2>
               <ion-badge :color="getPriorityColor(task.priority)"> {{ task.priority }}</ion-badge>
             </ion-label>
@@ -47,13 +47,25 @@
             </ion-button>
           </ion-item>
 
-          <ion-item-options side="end">
-            <ion-item-option color="danger" @click="confirmDelete(task.id)">
-              <ion-icon slot="icon-only" :icon="trashOutline"></ion-icon>
+          <!-- Swipe Left to delete -->
+          <ion-item-options side="end" @ionSwipe="handleSwipeDelete(task.id)">
+            <ion-item-option color="danger">
+              Delete
+            </ion-item-option>
+          </ion-item-options>
+          <!-- Swipe Right to toggle completion -->
+          <ion-item-options side="start" @ionSwipe="handleSwipeToggle(task.id)">
+            <ion-item-option color="success">
+              {{ task.done ? 'Incomplete' : 'Complete' }}
             </ion-item-option>
           </ion-item-options>
         </ion-item-sliding>
       </ion-list>
+
+      <!-- No more tasks message -->
+      <div v-if="filteredCompletedTasks.length > 0" class="no-more-tasks">
+        <p>No more tasks</p>
+      </div>
 
       <!-- Empty State -->
       <div v-else class="empty-state">
@@ -104,6 +116,8 @@ import {
 import {
   trashOutline,
   checkmarkDoneOutline,
+  checkmarkOutline,
+  closeOutline,
   createOutline,
   moonOutline,
   sunnyOutline,
@@ -111,6 +125,7 @@ import {
 import { useTaskStore } from '@/stores/taskStore';
 import { useUserStore } from '@/stores/userStore';
 import type { Task } from '@/stores/taskStore';
+import { useRouter } from 'vue-router';
 import defaultImage from '@/assets/task-default.webp';
 import Searchbar from '@/components/Searchbar.vue';
 import DeleteModal from '@/components/DeleteModal.vue';
@@ -118,6 +133,11 @@ import TaskModal from '@/components/TaskModal.vue';
 
 const taskStore = useTaskStore();
 const userStore = useUserStore();
+const router = useRouter();
+
+const goToDetail = (id: number) => {
+  router.push(`/tabs/tasks/${id}`);
+};
 
 // Search state
 const searchQuery = ref('');
@@ -129,6 +149,17 @@ const currentTask = ref<Task | null>(null);
 // Delete modal ref and state
 const deleteModalRef = ref<InstanceType<typeof DeleteModal> | null>(null);
 const taskToDelete = ref<number | null>(null);
+
+// Sliding items refs
+const slidingItemsMap = new Map<number, any>();
+const setSlidingRef = async (taskId: number, el: any) => {
+  if (el) {
+    const ionComponent = await el.$el?.componentOnReady?.();
+    slidingItemsMap.set(taskId, ionComponent || el.$el || el);
+  } else {
+    slidingItemsMap.delete(taskId);
+  }
+};
 
 // Computed filtered completed tasks
 const filteredCompletedTasks = computed(() => {
@@ -207,6 +238,20 @@ const getPriorityColor = (priority: string) => {
 // Toggle dark mode
 const toggleDarkMode = () => {
   userStore.toggleDarkMode(!userStore.darkMode);
+};
+
+// Handle swipe to delete
+const handleSwipeDelete = async (id: number) => {
+  const slidingItem = slidingItemsMap.get(id);
+  if (slidingItem?.close) await slidingItem.close();
+  confirmDelete(id);
+};
+
+// Handle swipe to toggle completion
+const handleSwipeToggle = async (id: number) => {
+  const slidingItem = slidingItemsMap.get(id);
+  toggleTask(id);
+  if (slidingItem?.close) await slidingItem.close();
 };
 
 </script>

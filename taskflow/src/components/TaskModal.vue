@@ -1,5 +1,10 @@
 <template>
-  <ion-modal :is-open="isOpen" @didDismiss="handleDismiss">
+  <ion-modal
+    :is-open="isOpen"
+    @didDismiss="handleDismiss"
+    :initial-breakpoint="1"
+    :breakpoints="[0, 1]"
+  >
     <ion-header>
       <ion-toolbar>
         <ion-title>{{ isEditMode ? 'Edit Task' : 'New Task' }}</ion-title>
@@ -118,5 +123,59 @@ const handleSave = () => {
 <style scoped>
 ion-button ion-icon {
   font-size: 1.5rem;
+}
+
+/* Smooth modal animations */
+ion-modal {
+  --backdrop-opacity: 0.6;
+  --border-radius: 16px;
+  --box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+/* Smooth transitions for form elements */
+ion-item {
+  --transition: all 0.3s ease;
+  margin-bottom: 12px;
+}
+
+ion-input,
+ion-select {
+  transition: all 0.3s ease;
+}
+
+ion-input:focus-within,
+ion-select:focus-within {
+  transform: scale(1.01);
+}
+
+/* Button animations */
+ion-button {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+ion-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+ion-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Content fade-in animation */
+ion-content {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

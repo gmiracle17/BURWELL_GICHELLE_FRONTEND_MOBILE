@@ -18,11 +18,7 @@
       </ion-header>
 
       <!-- Search Bar -->
-      <Searchbar
-        v-model="searchQuery"
-        placeholder="Search tasks..."
-        :debounce="300"
-      />
+      <Searchbar v-model="searchQuery" placeholder="Search tasks..." :debounce="300" />
 
       <!-- Status Filters with Counts -->
       <div class="filter-container">
@@ -39,41 +35,50 @@
 
       <!-- Task List -->
       <ion-list v-if="filteredTasks.length > 0">
-        <ion-item-sliding v-for="task in filteredTasks" :key="task.id">
+        <ion-item-sliding v-for="task in filteredTasks" :key="task.id" :ref="el => setSlidingRef(task.id, el)">
           <ion-item>
             <ion-checkbox slot="start" :checked="task.done" @ionChange="toggleTask(task.id)"></ion-checkbox>
             
-            <!-- Task Avatar: Default if not empty -->
-            <ion-item @click="goToDetail(task.id)">
-            <ion-avatar v-if="task.photo != null" class="task-avatar">
+            <ion-avatar v-if="task.photo != null" class="task-avatar" @click="goToDetail(task.id)">
               <img :src="task.photo" alt="" />
             </ion-avatar>
-            <ion-avatar v-else class="task-avatar">
+            <ion-avatar v-else class="task-avatar" @click="goToDetail(task.id)">
               <img :src="defaultImage" alt="" />
             </ion-avatar>
-
-            <ion-label>
+            
+            <ion-label @click="goToDetail(task.id)">
               <h2 :class="{ 'task-done': task.done }">{{ task.name }}</h2>
               <ion-badge :color="getPriorityColor(task.priority)"> {{ task.priority }} </ion-badge>
             </ion-label>
-            </ion-item>
 
             <ion-button slot="end" fill="clear" color="primary" @click="openEditTaskModal(task)">
               <ion-icon :icon="createOutline"></ion-icon>
             </ion-button>
-            
+
             <ion-button slot="end" fill="clear" color="danger" @click="confirmDelete(task.id)">
               <ion-icon :icon="trashOutline"></ion-icon>
             </ion-button>
           </ion-item>
 
-          <ion-item-options side="end">
-            <ion-item-option color="danger" @click="confirmDelete(task.id)">
-              <ion-icon slot="icon-only" :icon="trashOutline"></ion-icon>
+          <!-- Swipe Left to delete -->
+          <ion-item-options side="end" @ionSwipe="handleSwipeDelete(task.id)">
+            <ion-item-option color="danger">
+              Delete
+            </ion-item-option>
+          </ion-item-options>
+          <!-- Swipe Right to toggle completion -->
+          <ion-item-options side="start" @ionSwipe="handleSwipeToggle(task.id)">
+            <ion-item-option color="success">
+              {{ task.done ? 'Incomplete' : 'Complete' }}
             </ion-item-option>
           </ion-item-options>
         </ion-item-sliding>
       </ion-list>
+
+      <!-- No more tasks message -->
+      <div v-if="filteredTasks.length > 0" class="no-more-tasks">
+        <p>No more tasks</p>
+      </div>
 
       <!-- Empty State -->
       <div v-else class="empty-state">
@@ -153,8 +158,8 @@ const userStore = useUserStore();
 const router = useRouter();
 
 const goToDetail = (id: number) => {
-  router.push(`/tabs/tab1/${id}`)
-}
+  router.push(`/tabs/tasks/${id}`);
+};
 
 // Search and filter state
 const searchQuery = ref('');
@@ -167,6 +172,17 @@ const currentTask = ref<Task | null>(null);
 // Delete modal ref and state
 const deleteModalRef = ref<InstanceType<typeof DeleteModal> | null>(null);
 const taskToDelete = ref<number | null>(null);
+
+// Sliding items refs
+const slidingItemsMap = new Map<number, any>();
+const setSlidingRef = async (taskId: number, el: any) => {
+  if (el) {
+    const ionComponent = await el.$el?.componentOnReady?.();
+    slidingItemsMap.set(taskId, ionComponent || el.$el || el);
+  } else {
+    slidingItemsMap.delete(taskId);
+  }
+};
 
 // Computed filtered tasks
 const filteredTasks = computed(() => {
@@ -190,6 +206,7 @@ const filteredTasks = computed(() => {
   // 'Total' shows all tasks
   return filtered;
 });
+
 
 // Toggle task completion
 const toggleTask = (id: number) => {
@@ -268,12 +285,26 @@ const getPriorityColor = (priority: string) => {
 const toggleDarkMode = () => {
   userStore.toggleDarkMode(!userStore.darkMode);
 };
+
+// Handle swipe to delete
+const handleSwipeDelete = async (id: number) => {
+  const slidingItem = slidingItemsMap.get(id);
+  if (slidingItem?.close) await slidingItem.close();
+  confirmDelete(id);
+};
+
+// Handle swipe to toggle completion
+const handleSwipeToggle = async (id: number) => {
+  const slidingItem = slidingItemsMap.get(id);
+  toggleTask(id);
+  if (slidingItem?.close) await slidingItem.close();
+};
+
 </script>
 
 <style scoped>
 @import '@/theme/task.css';
 
-/* Task completion styling */
 .task-done {
   text-decoration: line-through;
   opacity: 0.6;

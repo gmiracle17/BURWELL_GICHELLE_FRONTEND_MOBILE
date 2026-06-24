@@ -97,6 +97,15 @@ export const useTaskStore = defineStore('tasks', () => {
     }
   }
 
+  // Removes Photo from Task
+  function removePhotoFromTask(taskId: number) {
+    const task = tasks.value.find(t => t.id === taskId)
+    if (task) {
+      task.photo = undefined
+      persistTasks()
+    }
+  }
+
   return {
     tasks,
     nextId,
@@ -108,6 +117,7 @@ export const useTaskStore = defineStore('tasks', () => {
     toggleTask,
     removeTask,
     setPriority,
-    addPhotoToTask
+    addPhotoToTask,
+    removePhotoFromTask
   }
 })
