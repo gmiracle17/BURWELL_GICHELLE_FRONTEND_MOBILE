@@ -1,6 +1,6 @@
 <template>
   <div id="container">
-    <strong>{{ name }}</strong>
+    <span>{{ name }}</span>
     <p>Explore <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
   </div>
 </template>
@@ -21,7 +21,7 @@ defineProps({
   transform: translateY(-50%);
 }
 
-#container strong {
+#container span {
   font-size: 20px;
   line-height: 26px;
 }

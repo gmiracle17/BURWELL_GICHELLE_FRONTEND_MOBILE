@@ -3,6 +3,11 @@
     <ion-header>
       <ion-toolbar>
         <ion-title>Completed Tasks</ion-title>
+        <ion-buttons slot="end">
+          <ion-button @click="toggleDarkMode">
+            <ion-icon slot="icon-only" :icon="userStore.darkMode ? sunnyOutline : moonOutline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
     <ion-content :fullscreen="true">
@@ -13,7 +18,7 @@
       </ion-header>
 
       <!-- Search Bar -->
-      <ion-searchbar v-model="searchQuery" placeholder="Search completed tasks..." :debounce="300"></ion-searchbar>
+      <Searchbar v-model="searchQuery" placeholder="Search completed tasks..." :debounce="300" />
 
       <!-- Completed Task List -->
       <ion-list v-if="filteredCompletedTasks.length > 0">
@@ -21,10 +26,21 @@
           <ion-item>
             <ion-checkbox slot="start" :checked="task.done" @ionChange="toggleTask(task.id)"></ion-checkbox>
             
+            <ion-avatar v-if="task.photo != null" class="task-avatar">
+              <img :src="task.photo" alt="" />
+            </ion-avatar>
+            <ion-avatar v-else class="task-avatar">
+              <img :src="defaultImage" alt="" />
+            </ion-avatar>
+            
             <ion-label>
               <h2 class="task-done">{{ task.name }}</h2>
               <ion-badge :color="getPriorityColor(task.priority)"> {{ task.priority }}</ion-badge>
             </ion-label>
+
+            <ion-button slot="end" fill="clear" color="primary" @click="openEditTaskModal(task)">
+              <ion-icon :icon="createOutline"></ion-icon>
+            </ion-button>
 
             <ion-button slot="end" fill="clear" color="danger" @click="confirmDelete(task.id)">
               <ion-icon :icon="trashOutline"></ion-icon>
@@ -44,6 +60,22 @@
         <ion-icon :icon="checkmarkDoneOutline" size="large"></ion-icon>
         <p>{{ searchQuery ? 'No completed tasks found' : 'No completed tasks yet. Complete some tasks to see them here!' }}</p>
       </div>
+
+      <!-- Task Modal Component to handle edit -->
+      <TaskModal
+        :is-open="isModalOpen"
+        :task="currentTask"
+        @close="closeModal"
+        @save="handleSaveTask"
+      />
+
+      <!-- Delete Confirmation Modal -->
+      <DeleteModal
+        ref="deleteModalRef"
+        header="Delete Task"
+        message="Are you sure you want to delete this completed task?"
+        @confirm="handleDeleteConfirm"
+      />
     </ion-content>
   </ion-page>
 </template>
@@ -61,31 +93,49 @@ import {
   IonLabel,
   IonCheckbox,
   IonButton,
+  IonButtons,
   IonIcon,
-  IonSearchbar,
   IonBadge,
   IonItemSliding,
   IonItemOptions,
   IonItemOption,
-  alertController
+  IonAvatar,
 } from '@ionic/vue';
 import {
   trashOutline,
-  checkmarkDoneOutline
+  checkmarkDoneOutline,
+  createOutline,
+  moonOutline,
+  sunnyOutline,
 } from 'ionicons/icons';
 import { useTaskStore } from '@/stores/taskStore';
+import { useUserStore } from '@/stores/userStore';
+import type { Task } from '@/stores/taskStore';
+import defaultImage from '@/assets/task-default.webp';
+import Searchbar from '@/components/Searchbar.vue';
+import DeleteModal from '@/components/DeleteModal.vue';
+import TaskModal from '@/components/TaskModal.vue';
 
 const taskStore = useTaskStore();
+const userStore = useUserStore();
 
 // Search state
 const searchQuery = ref('');
 
+// Modal state
+const isModalOpen = ref(false);
+const currentTask = ref<Task | null>(null);
+
+// Delete modal ref and state
+const deleteModalRef = ref<InstanceType<typeof DeleteModal> | null>(null);
+const taskToDelete = ref<number | null>(null);
+
 // Computed filtered completed tasks
 const filteredCompletedTasks = computed(() => {
-  // First filter for completed tasks only
+  // Filter for completed tasks only
   let filtered = taskStore.tasks.filter(task => task.done);
 
-  // Then filter by search query
+  // Filter by search query
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase();
     filtered = filtered.filter(task =>
@@ -101,27 +151,43 @@ const toggleTask = (id: number) => {
   taskStore.toggleTask(id);
 };
 
-// Confirm delete with alert
-const confirmDelete = async (id: number) => {
-  const alert = await alertController.create({
-    header: 'Delete Task',
-    message: 'Are you sure you want to delete this task?',
-    buttons: [
-      {
-        text: 'Cancel',
-        role: 'cancel'
-      },
-      {
-        text: 'Delete',
-        role: 'destructive',
-        handler: () => {
-          taskStore.removeTask(id);
-        }
-      }
-    ]
-  });
+// Confirm delete with DeleteModal
+const confirmDelete = (id: number) => {
+  taskToDelete.value = id;
+  deleteModalRef.value?.show();
+};
 
-  await alert.present();
+// Handle delete confirmation
+const handleDeleteConfirm = () => {
+  if (taskToDelete.value !== null) {
+    taskStore.removeTask(taskToDelete.value);
+    taskToDelete.value = null;
+  }
+};
+
+// Open edit task modal
+const openEditTaskModal = (task: Task) => {
+  currentTask.value = task;
+  isModalOpen.value = true;
+};
+
+// Close modal
+const closeModal = () => {
+  isModalOpen.value = false;
+  currentTask.value = null;
+};
+
+// Handle save task for editting
+const handleSaveTask = (data: { name: string; priority: 'Low' | 'Medium' | 'High' }) => {
+  if (currentTask.value) {
+    // Edit existing task
+    taskStore.editTask(currentTask.value.id, {
+      name: data.name,
+      priority: data.priority
+    });
+  }
+  
+  closeModal();
 };
 
 // Get priority color
@@ -138,36 +204,13 @@ const getPriorityColor = (priority: string) => {
   }
 };
 
+// Toggle dark mode
+const toggleDarkMode = () => {
+  userStore.toggleDarkMode(!userStore.darkMode);
+};
+
 </script>
 
 <style scoped>
-.task-done {
-  text-decoration: line-through;
-  opacity: 0.6;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  text-align: center;
-  color: var(--ion-color-medium);
-}
-
-.empty-state ion-icon {
-  font-size: 80px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-.empty-state p {
-  font-size: 1rem;
-  margin: 0;
-}
-
-ion-badge {
-  margin-top: 8px;
-}
+@import '@/theme/task.css';
 </style>

@@ -3,6 +3,11 @@
     <ion-header>
       <ion-toolbar>
         <ion-title>Tasks</ion-title>
+        <ion-buttons slot="end">
+          <ion-button @click="toggleDarkMode">
+            <ion-icon slot="icon-only" :icon="userStore.darkMode ? sunnyOutline : moonOutline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
     <ion-content :fullscreen="true">
@@ -13,11 +18,11 @@
       </ion-header>
 
       <!-- Search Bar -->
-      <ion-searchbar
+      <Searchbar
         v-model="searchQuery"
         placeholder="Search tasks..."
         :debounce="300"
-      ></ion-searchbar>
+      />
 
       <!-- Status Filters with Counts -->
       <div class="filter-container">
@@ -38,13 +43,15 @@
           <ion-item>
             <ion-checkbox slot="start" :checked="task.done" @ionChange="toggleTask(task.id)"></ion-checkbox>
             
+            <!-- Task Avatar: Default if not empty -->
             <ion-item @click="goToDetail(task.id)">
-            <ion-avatar v-if="task.photo!=null"style="height:50px; width: 50px; margin-right: 10px">
-              <img :src="task.photo" alt="" style="width: 100%; border-radius: 25px;" />
+            <ion-avatar v-if="task.photo != null" class="task-avatar">
+              <img :src="task.photo" alt="" />
             </ion-avatar>
-            <ion-avatar v-else style="height:50px; width: 50px; margin-right: 10px">
-              <img :src="defaultImage" alt="" style="width: 100%; border-radius: 25px;" />
+            <ion-avatar v-else class="task-avatar">
+              <img :src="defaultImage" alt="" />
             </ion-avatar>
+
             <ion-label>
               <h2 :class="{ 'task-done': task.done }">{{ task.name }}</h2>
               <ion-badge :color="getPriorityColor(task.priority)"> {{ task.priority }} </ion-badge>
@@ -81,73 +88,21 @@
         </ion-fab-button>
       </ion-fab>
 
-      <!-- Add Task Modal -->
-      <ion-modal :is-open="isModalOpen" @didDismiss="closeAddTaskModal">
-        <ion-header>
-          <ion-toolbar>
-            <ion-title>New Task</ion-title>
-            <ion-buttons slot="end">
-              <ion-button @click="closeAddTaskModal">
-                <ion-icon :icon="closeOutline"></ion-icon>
-              </ion-button>
-            </ion-buttons>
-          </ion-toolbar>
-        </ion-header>
-        <ion-content class="ion-padding">
-          <ion-item>
-            <ion-label position="stacked">Task Name</ion-label>
-            <ion-input v-model="newTaskName" placeholder="Enter task name" @keyup.enter="addNewTask"></ion-input>
-          </ion-item>
+      <!-- Task Modal Component for Add and Edit Task -->
+      <TaskModal
+        :is-open="isModalOpen"
+        :task="currentTask"
+        @close="closeModal"
+        @save="handleSaveTask"
+      />
 
-          <ion-item>
-            <ion-label position="stacked">Priority</ion-label>
-            <ion-select v-model="newTaskPriority" placeholder="Select priority">
-              <ion-select-option value="Low">Low</ion-select-option>
-              <ion-select-option value="Medium">Medium</ion-select-option>
-              <ion-select-option value="High">High</ion-select-option>
-            </ion-select>
-          </ion-item>
-
-          <ion-button expand="block" @click="addNewTask" class="ion-margin-top">
-            <ion-icon slot="start" :icon="addOutline"></ion-icon>
-            Add Task
-          </ion-button>
-        </ion-content>
-      </ion-modal>
-
-      <!-- Edit Task Modal -->
-      <ion-modal :is-open="isEditModalOpen" @didDismiss="closeEditTaskModal">
-        <ion-header>
-          <ion-toolbar>
-            <ion-title>Edit Task</ion-title>
-            <ion-buttons slot="end">
-              <ion-button @click="closeEditTaskModal">
-                <ion-icon :icon="closeOutline"></ion-icon>
-              </ion-button>
-            </ion-buttons>
-          </ion-toolbar>
-        </ion-header>
-        <ion-content class="ion-padding">
-          <ion-item>
-            <ion-label position="stacked">Task Name</ion-label>
-            <ion-input v-model="editTaskName" placeholder="Enter task name" @keyup.enter="saveEditTask"></ion-input>
-          </ion-item>
-
-          <ion-item>
-            <ion-label position="stacked">Priority</ion-label>
-            <ion-select v-model="editTaskPriority" placeholder="Select priority">
-              <ion-select-option value="Low">Low</ion-select-option>
-              <ion-select-option value="Medium">Medium</ion-select-option>
-              <ion-select-option value="High">High</ion-select-option>
-            </ion-select>
-          </ion-item>
-
-          <ion-button expand="block" @click="saveEditTask" class="ion-margin-top">
-            <ion-icon slot="start" :icon="saveOutline"></ion-icon>
-            Save Changes
-          </ion-button>
-        </ion-content>
-      </ion-modal>
+      <!-- Delete Confirmation Modal -->
+      <DeleteModal
+        ref="deleteModalRef"
+        header="Delete Task"
+        message="Are you sure you want to delete this task?"
+        @confirm="handleDeleteConfirm"
+      />
     </ion-content>
   </ion-page>
 </template>
@@ -165,22 +120,15 @@ import {
   IonLabel,
   IonCheckbox,
   IonButton,
+  IonButtons,
   IonIcon,
   IonFab,
   IonFabButton,
-  IonModal,
-  IonInput,
-  IonSelect,
-  IonSelectOption,
-  IonButtons,
-  IonSearchbar,
   IonChip,
   IonBadge,
   IonItemSliding,
   IonItemOptions,
   IonItemOption,
-  IonRouterOutlet,
-  alertController,
   IonAvatar,
 } from '@ionic/vue';
 import {
@@ -188,14 +136,20 @@ import {
   trashOutline,
   checkmarkDoneOutline,
   createOutline,
-  saveOutline,
-  closeOutline,
+  moonOutline,
+  sunnyOutline,
 } from 'ionicons/icons';
 import { useTaskStore } from '@/stores/taskStore';
+import { useUserStore } from '@/stores/userStore';
+import type { Task } from '@/stores/taskStore';
 import { useRouter } from 'vue-router';
 import defaultImage from '@/assets/task-default.webp';
+import TaskModal from '@/components/TaskModal.vue';
+import Searchbar from '@/components/Searchbar.vue';
+import DeleteModal from '@/components/DeleteModal.vue';
 
 const taskStore = useTaskStore();
+const userStore = useUserStore();
 const router = useRouter();
 
 const goToDetail = (id: number) => {
@@ -206,18 +160,13 @@ const goToDetail = (id: number) => {
 const searchQuery = ref('');
 const selectedStatus = ref<'Total' | 'Pending' | 'Completed'>('Total');
 
-// Add task modal state
+// Modal state
 const isModalOpen = ref(false);
-const newTaskName = ref('');
-const newTaskPriority = ref<'Low' | 'Medium' | 'High'>('Low');
-const newTaskDueDate = ref('');
+const currentTask = ref<Task | null>(null);
 
-// Edit task modal state
-const isEditModalOpen = ref(false);
-const editTaskId = ref<number | null>(null);
-const editTaskName = ref('');
-const editTaskPriority = ref<'Low' | 'Medium' | 'High'>('Low');
-const editTaskDueDate = ref('');
+// Delete modal ref and state
+const deleteModalRef = ref<InstanceType<typeof DeleteModal> | null>(null);
+const taskToDelete = ref<number | null>(null);
 
 // Computed filtered tasks
 const filteredTasks = computed(() => {
@@ -237,8 +186,8 @@ const filteredTasks = computed(() => {
   } else if (selectedStatus.value === 'Completed') {
     filtered = filtered.filter(task => task.done);
   }
-  // 'Total' shows all tasks, no additional filtering needed
 
+  // 'Total' shows all tasks
   return filtered;
 });
 
@@ -249,82 +198,55 @@ const toggleTask = (id: number) => {
 
 // Open add task modal
 const openAddTaskModal = () => {
+  currentTask.value = null;
   isModalOpen.value = true;
-  newTaskName.value = '';
-  newTaskPriority.value = 'Low';
-  newTaskDueDate.value = '';
 };
 
-// Close add task modal
-const closeAddTaskModal = () => {
+// Open edit task modal
+const openEditTaskModal = (task: Task) => {
+  currentTask.value = task;
+  isModalOpen.value = true;
+};
+
+// Close modal
+const closeModal = () => {
   isModalOpen.value = false;
+  currentTask.value = null;
 };
 
-// Add new task
-const addNewTask = () => {
-  if (newTaskName.value.trim()) {
-    taskStore.addTask(newTaskName.value, newTaskDueDate.value || null);
+// Handle save task for add and edit
+const handleSaveTask = (data: { name: string; priority: 'Low' | 'Medium' | 'High' }) => {
+  if (currentTask.value) {
+    // Edit existing task
+    taskStore.editTask(currentTask.value.id, {
+      name: data.name,
+      priority: data.priority
+    });
+  } else {
+    // Add new task
+    taskStore.addTask(data.name);
     
     // Set priority for the newly added task
     const newTask = taskStore.tasks[taskStore.tasks.length - 1];
     if (newTask) {
-      taskStore.setPriority(newTask.id, newTaskPriority.value);
+      taskStore.setPriority(newTask.id, data.priority);
     }
-    
-    closeAddTaskModal();
   }
+  
+  closeModal();
 };
 
-// Confirm delete with alert
-const confirmDelete = async (id: number) => {
-  const alert = await alertController.create({
-    header: 'Delete Task',
-    message: 'Are you sure you want to delete this task?',
-    buttons: [
-      {
-        text: 'Cancel',
-        role: 'cancel'
-      },
-      {
-        text: 'Delete',
-        role: 'destructive',
-        handler: () => {
-          taskStore.removeTask(id);
-        }
-      }
-    ]
-  });
-
-  await alert.present();
+// Confirm delete with DeleteModal
+const confirmDelete = (id: number) => {
+  taskToDelete.value = id;
+  deleteModalRef.value?.show();
 };
 
-// Open edit task modal
-const openEditTaskModal = (task: any) => {
-  editTaskId.value = task.id;
-  editTaskName.value = task.name;
-  editTaskPriority.value = task.priority;
-  editTaskDueDate.value = task.dueDate || '';
-  isEditModalOpen.value = true;
-};
-
-// Close edit task modal
-const closeEditTaskModal = () => {
-  isEditModalOpen.value = false;
-  editTaskId.value = null;
-  editTaskName.value = '';
-  editTaskPriority.value = 'Low';
-  editTaskDueDate.value = '';
-};
-
-// Save edited task
-const saveEditTask = () => {
-  if (editTaskId.value !== null && editTaskName.value.trim()) {
-    taskStore.editTask(editTaskId.value, {
-      name: editTaskName.value,
-      dueDate: editTaskDueDate.value || null
-    });
-    taskStore.setPriority(editTaskId.value, editTaskPriority.value);
-    closeEditTaskModal();
+// Handle delete confirmation
+const handleDeleteConfirm = () => {
+  if (taskToDelete.value !== null) {
+    taskStore.removeTask(taskToDelete.value);
+    taskToDelete.value = null;
   }
 };
 
@@ -342,100 +264,18 @@ const getPriorityColor = (priority: string) => {
   }
 };
 
-function chooseDisplayImage(task) {
-  if (task.photo != null) return './assets/task-default.webp'
-  return task.photo
-}
+// Toggle dark mode
+const toggleDarkMode = () => {
+  userStore.toggleDarkMode(!userStore.darkMode);
+};
 </script>
 
 <style scoped>
-.stats-container {
-  display: flex;
-  justify-content: space-around;
-  padding: 16px;
-  background: var(--ion-color-light);
-  margin: 0 16px 8px 16px;
-  border-radius: 12px;
-}
+@import '@/theme/task.css';
 
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.stat-item ion-icon {
-  font-size: 28px;
-}
-
-.stat-content {
-  display: flex;
-  flex-direction: column;
-}
-
-.stat-value {
-  font-size: 1.25rem;
-  font-weight: bold;
-  line-height: 1.2;
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  color: var(--ion-color-medium);
-  text-transform: uppercase;
-}
-
-.filter-container {
-  display: flex;
-  gap: 8px;
-  padding: 12px 16px;
-  overflow-x: auto;
-}
-
+/* Task completion styling */
 .task-done {
   text-decoration: line-through;
   opacity: 0.6;
-}
-
-.due-date {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.875rem;
-  color: var(--ion-color-medium);
-  margin-top: 4px;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  text-align: center;
-  color: var(--ion-color-medium);
-}
-
-.empty-state ion-icon {
-  font-size: 80px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-.empty-state p {
-  font-size: 1rem;
-  margin: 0;
-}
-
-ion-badge {
-  margin-top: 8px;
-}
-
-ion-fab {
-  margin: 16px;
-}
-
-ion-button ion-icon {
-  font-size: 1.5rem;
 }
 </style>

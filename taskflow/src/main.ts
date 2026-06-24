@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import App from './App.vue'
 import router from './router';
+import { useUserStore } from './stores/userStore'
 
 import { IonicVue } from '@ionic/vue';
 
@@ -43,6 +44,10 @@ const app = createApp(App)
 const pinia = createPinia()
 pinia.use(piniaPluginPersistedstate)
 app.use(pinia)
+
+// Initialize dark mode from stored preference
+const userStore = useUserStore()
+userStore.initDarkMode()
 
 router.isReady().then(() => {
   app.mount('#app');

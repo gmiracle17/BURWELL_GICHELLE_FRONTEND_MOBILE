@@ -4,27 +4,27 @@
       <div class="auth-container">
         <ion-card class="auth-card">
           <ion-card-header>
-            <ion-card-subtitle>MONITOR AND COMPLETE YOUR TASKS</ion-card-subtitle>
+            <ion-card-subtitle>Join TaskFlow</ion-card-subtitle>
             <ion-card-title>
-              Sign in to
-              <ion-text color="success">TaskFlow</ion-text>
+              Create your
+              <ion-text color="success">Account</ion-text>
             </ion-card-title>
           </ion-card-header>
 
           <ion-card-content>
             <ion-item lines="none">
               <ion-label position="stacked">Enter your name</ion-label>
-              <ion-input v-model="nameInput" type="text" placeholder="e.g. Gichelle Miracle" @keyup.enter="handleLogin"></ion-input>
+              <ion-input v-model="nameInput" type="text" placeholder="e.g. Gichelle Miracle" @keyup.enter="handleRegister"></ion-input>
             </ion-item>
             
             <ion-text v-if="error" color="danger">
               <p class="auth-error-text">{{ error }}</p>
             </ion-text>
 
-            <ion-button expand="block" @click="handleLogin" class="ion-margin-top"> Continue →</ion-button>
+            <ion-button expand="block" @click="handleRegister" class="ion-margin-top"> Create Account → </ion-button>
 
             <div class="auth-link">
-              Don't have an account? <router-link to="/register">Register here</router-link>
+              Already have an account? <router-link to="/login">Login here</router-link>
             </div>
           </ion-card-content>
         </ion-card>
@@ -36,7 +36,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { storeToRefs } from 'pinia'
 import { useUserStore } from '@/stores/userStore'
 import { 
   IonPage, 
@@ -55,19 +54,18 @@ import {
 
 const router = useRouter()
 const userStore = useUserStore()
-const { isLoggedIn } = storeToRefs(userStore)
-const { login } = userStore
+const { register } = userStore
 
 const nameInput = ref('')
 const error = ref('')
 
-function handleLogin() {
+function handleRegister() {
   if (!nameInput.value.trim()) {
     error.value = 'Please enter your name.'
     return
   }
   error.value = ''
-  login(nameInput.value.trim())
+  register(nameInput.value.trim())
   router.push('/tabs/tab1')        
 }
 </script>

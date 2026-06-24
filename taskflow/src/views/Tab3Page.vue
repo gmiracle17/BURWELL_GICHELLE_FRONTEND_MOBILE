@@ -3,6 +3,11 @@
     <ion-header>
       <ion-toolbar>
         <ion-title>Settings</ion-title>
+        <ion-buttons slot="end">
+          <ion-button @click="toggleDarkModeHeader">
+            <ion-icon slot="icon-only" :icon="userStore.darkMode ? sunnyOutline : moonOutline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
     <ion-content :fullscreen="true">
@@ -11,6 +16,21 @@
           <ion-title size="large">Settings</ion-title>
         </ion-toolbar>
       </ion-header>
+
+      <!-- User Profile Section -->
+      <ion-list v-if="userStore.isLoggedIn">
+        <ion-list-header>
+          <ion-label>Account</ion-label>
+        </ion-list-header>
+
+        <ion-item>
+          <ion-icon :icon="personOutline" slot="start"></ion-icon>
+          <ion-label>
+            <h2>{{ userStore.currentUser }}</h2>
+            <p>Current user</p>
+          </ion-label>
+        </ion-item>
+      </ion-list>
 
       <ion-list>
         <ion-list-header>
@@ -23,15 +43,24 @@
             <h2>Dark Mode</h2>
             <p>Toggle dark theme</p>
           </ion-label>
-          <ion-toggle slot="end" :checked="isDarkMode" @ionChange="toggleDarkMode"></ion-toggle>
+          <ion-toggle slot="end" :checked="userStore.darkMode" @ionChange="toggleDarkMode"></ion-toggle>
         </ion-item>
       </ion-list>
+
+      <div v-if="userStore.isLoggedIn" class="logout-container">
+        <ion-button expand="block" color="danger" @click="handleLogout">
+          <ion-icon slot="start" :icon="logOutOutline"></ion-icon>
+          Logout
+        </ion-button>
+      </div>
     </ion-content>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useUserStore } from '@/stores/userStore';
 import {
   IonPage,
   IonHeader,
@@ -43,51 +72,51 @@ import {
   IonItem,
   IonLabel,
   IonToggle,
-  IonIcon
+  IonIcon,
+  IonButtons
 } from '@ionic/vue';
 import {
-  moonOutline
+  moonOutline,
+  sunnyOutline,
+  personOutline,
+  logOutOutline
 } from 'ionicons/icons';
 
-const isDarkMode = ref(false);
+const router = useRouter();
+const userStore = useUserStore();
 
-// Check if dark mode is enabled on mount
+// Initialize dark mode on mount
 onMounted(() => {
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)');
-  const savedTheme = localStorage.getItem('darkMode');
-  
-  if (savedTheme !== null) {
-    isDarkMode.value = savedTheme === 'true';
-  } else {
-    isDarkMode.value = prefersDark.matches;
-  }
-  
-  applyTheme(isDarkMode.value);
+  userStore.initDarkMode();
 });
 
-// Toggle dark mode
+// Toggle dark mode from toggle switch
 const toggleDarkMode = (event: CustomEvent) => {
-  isDarkMode.value = event.detail.checked;
-  localStorage.setItem('darkMode', isDarkMode.value.toString());
-  applyTheme(isDarkMode.value);
+  userStore.toggleDarkMode(event.detail.checked);
 };
 
-// Apply theme to document
-const applyTheme = (dark: boolean) => {
-  document.body.classList.toggle('dark', dark);
+// Toggle dark mode from header button
+const toggleDarkModeHeader = () => {
+  userStore.toggleDarkMode(!userStore.darkMode);
+};
+
+// Handle logout
+const handleLogout = () => {
+  userStore.logout();
+  router.push('/login');
 };
 </script>
 
 <style scoped>
 ion-list-header {
-  font-weight: 600;
+  font-weight: 400;
   text-transform: uppercase;
   font-size: 0.875rem;
   color: var(--ion-color-medium);
 }
 
 ion-item h2 {
-  font-weight: 500;
+  font-weight: 400;
   margin: 0;
 }
 
@@ -95,5 +124,17 @@ ion-item p {
   margin: 4px 0 0 0;
   font-size: 0.875rem;
   color: var(--ion-color-medium);
+}
+
+.logout-container {
+  padding: 24px 16px 32px;
+}
+
+.logout-container ion-button {
+  --background: var(--ion-color-danger);
+  --background-hover: var(--ion-color-danger-shade);
+  --background-activated: var(--ion-color-danger-shade);
+  --background-focused: var(--ion-color-danger-shade);
+  --color: var(--ion-color-danger-contrast);
 }
 </style>
