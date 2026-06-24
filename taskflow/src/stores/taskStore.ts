@@ -54,6 +54,11 @@ export const useTaskStore = defineStore('tasks', () => {
     if (task) task.priority = priority
   }
 
+  function addPhotoToTask(taskId, photoPath) {
+    const task = tasks.value.find(t => t.id === taskId)
+    if (task) task.photo = photoPath
+  }
+
   return { 
     tasks, 
     nextId,
@@ -64,7 +69,8 @@ export const useTaskStore = defineStore('tasks', () => {
     editTask, 
     toggleTask, 
     removeTask,
-    setPriority 
+    setPriority,
+    addPhotoToTask
   }
 
 }, { persist: true })

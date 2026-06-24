@@ -40,7 +40,7 @@ const app = createApp(App)
   .use(IonicVue)
   .use(router);
 
-  const pinia = createPinia()
+const pinia = createPinia()
 pinia.use(piniaPluginPersistedstate)
 app.use(pinia)
 

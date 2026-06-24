@@ -38,10 +38,18 @@
           <ion-item>
             <ion-checkbox slot="start" :checked="task.done" @ionChange="toggleTask(task.id)"></ion-checkbox>
             
-            <ion-label @click="goToDetail(task.id)">
+            <ion-item @click="goToDetail(task.id)">
+            <ion-avatar v-if="task.photo!=null"style="height:50px; width: 50px; margin-right: 10px">
+              <img :src="task.photo" alt="" style="width: 100%; border-radius: 25px;" />
+            </ion-avatar>
+            <ion-avatar v-else style="height:50px; width: 50px; margin-right: 10px">
+              <img :src="defaultImage" alt="" style="width: 100%; border-radius: 25px;" />
+            </ion-avatar>
+            <ion-label>
               <h2 :class="{ 'task-done': task.done }">{{ task.name }}</h2>
               <ion-badge :color="getPriorityColor(task.priority)"> {{ task.priority }} </ion-badge>
             </ion-label>
+            </ion-item>
 
             <ion-button slot="end" fill="clear" color="primary" @click="openEditTaskModal(task)">
               <ion-icon :icon="createOutline"></ion-icon>
@@ -172,7 +180,8 @@ import {
   IonItemOptions,
   IonItemOption,
   IonRouterOutlet,
-  alertController
+  alertController,
+  IonAvatar,
 } from '@ionic/vue';
 import {
   addOutline,
@@ -184,6 +193,7 @@ import {
 } from 'ionicons/icons';
 import { useTaskStore } from '@/stores/taskStore';
 import { useRouter } from 'vue-router';
+import defaultImage from '@/assets/task-default.webp';
 
 const taskStore = useTaskStore();
 const router = useRouter();
@@ -331,6 +341,11 @@ const getPriorityColor = (priority: string) => {
       return 'medium';
   }
 };
+
+function chooseDisplayImage(task) {
+  if (task.photo != null) return './assets/task-default.webp'
+  return task.photo
+}
 </script>
 
 <style scoped>

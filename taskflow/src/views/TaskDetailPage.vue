@@ -1,87 +1,93 @@
-<!--
-=============================================================
-  DAY 3 ASSIGNMENT — TaskDetailView.vue
-  Displays full details for a single task
-=============================================================
--->
 <script setup>
 import { ref, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useTaskStore } from '@/stores/taskStore'
 import {
   IonPage,
   IonHeader,
   IonToolbar,
-  IonTitle,
-  IonContent,
+  IonButtons,
   IonBackButton,
-  IonList,
-  IonItem,
-  IonLabel,
-  IonCheckbox,
+  IonContent,
   IonButton,
+  IonBadge,
   IonIcon,
   IonFab,
-  IonFabButton,
-  IonModal,
-  IonInput,
-  IonSelect,
-  IonSelectOption,
-  IonButtons,
-  IonSearchbar,
-  IonChip,
-  IonBadge,
-  IonItemSliding,
-  IonItemOptions,
-  IonItemOption,
-  IonRouterOutlet,
-  alertController
-} from '@ionic/vue';
+} from '@ionic/vue'
+import { 
+  cameraOutline, 
+} from 'ionicons/icons';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera'
 
-// TODO 1: Get the current route and router instances
-const route  = useRoute()
-
+const route = useRoute()
 const taskStore = useTaskStore()
+const { addPhotoToTask } = taskStore
 
-// TODO 2: Find the task matching the route param
-// Remember: route.params.id is a STRING — cast to Number before comparing
-const task = computed(() => taskStore.tasks.find(task => task.id === Number(route.params.id)))
+const task = computed(() => taskStore.tasks.find(t => t.id === Number(route.params.id)))
+// Camera capture
+async function capturePhoto(task) {
+  if (!task) return
+  try {
+    const photo = await Camera.takePhoto({
+      quality: 80,
+      resultType: CameraResultType.Uri,
+      source: CameraSource.Camera
+    })
+    const photoPath = photo.webPath
+    addPhotoToTask(task.id, photoPath)
+  } catch (err) {
+    console.log('Camera error:', err)
+  }
+}
 </script>
-
 <template>
   <ion-page>
     <ion-header>
-        <ion-toolbar>
-            <ion-buttons slot="start">
-            <ion-back-button default-href="/tabs/tab1"></ion-back-button>
-            </ion-buttons>
-        </ion-toolbar>
-        </ion-header>
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-back-button default-href="/tabs/tab1"></ion-back-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
     <ion-content class="ion-padding">
-      <div class="info-row">
-        <span class="task-name"> {{ task.name }}</span>
+      <div v-if="task" class="info-row">
+        <span class="task-name">{{ task.name }}</span>
         <span class="label">Status:</span>
         <ion-badge>{{ task.done ? 'Done' : 'Pending' }}</ion-badge>
         <span class="label">Priority:</span>
         <ion-badge>{{ task.priority }}</ion-badge>
+        <div v-if="task.photo">
+          <img :src="task.photo" alt="Task Photo" style="margin-top: 24px; width: 100%; border-radius: 8px;" />
+        </div>
+        <ion-fab slot="fixed" vertical="top" horizontal="end">
+          <ion-fab-button class="camera-button" @click="capturePhoto(task)">
+            <ion-icon :icon="cameraOutline"></ion-icon>
+          </ion-fab-button>
+        </ion-fab>
+        
+      </div>
+      <div v-else>
+        Task not found.
       </div>
     </ion-content>
   </ion-page>
 </template>
-
 <style>
-.info-row{
-    display:flex;
-    flex-direction: column;
+.info-row {
+  display: flex;
+  flex-direction: column;
 }
-.info-row .label {
-    display:flex;
-    flex-direction: row;
+.task-name {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  margin-top: 1.5rem;
 }
-
-.info-row .task-name{
-    font-size: 1.5rem;
-    font-weight: bold;
-    margin-bottom: 1rem;
+.label {
+  margin-top: 10px;
+  font-weight: bold;
+}
+.camera-button {
+  margin-top: 20px;
 }
 </style>
