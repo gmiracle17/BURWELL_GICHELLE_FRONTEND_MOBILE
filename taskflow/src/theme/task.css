@@ -8,17 +8,11 @@
 }
 
 .filter-container ion-chip {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
 }
 
 .filter-container ion-chip:hover {
-  transform: translateY(-2px) scale(1.05);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.filter-container ion-chip:active {
-  transform: translateY(0) scale(1);
 }
 
 /* Stats container */
@@ -84,16 +78,11 @@
 ion-badge {
   margin-top: 4px;
   font-weight: 400;
-  transition: all 0.3s ease;
 }
 
 /* FAB button */
 ion-fab {
   margin: 16px;
-}
-
-ion-fab-button {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 ion-fab-button:hover {
@@ -107,7 +96,6 @@ ion-fab-button:active {
 
 ion-button ion-icon {
   font-size: 1.5rem;
-  transition: transform 0.3s ease;
 }
 
 /* Avatar styling for task images */
@@ -129,21 +117,13 @@ ion-list {
 
 ion-item-sliding {
   margin-bottom: 8px;
-  transition: all 0.3s ease;
 }
 
 ion-list ion-item-sliding ion-item {
   --inner-padding-end: 12px;
   --inner-padding-start: 0;
-  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 12px;
   margin: 4px 8px;
-}
-
-ion-list ion-item-sliding ion-item:hover {
-  transform: translateX(4px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 ion-list ion-item-sliding ion-item .task-avatar {
@@ -152,7 +132,6 @@ ion-list ion-item-sliding ion-item .task-avatar {
   width: 15%;
   max-width: 60px;
   margin: 0;
-  transition: transform 0.3s ease;
   cursor: pointer;
 }
 
@@ -160,14 +139,9 @@ ion-list ion-item-sliding ion-item .task-avatar:hover {
   transform: scale(1.1);
 }
 
-ion-list ion-item-sliding ion-item .task-avatar img {
-  transition: all 0.3s ease;
-}
-
 ion-list ion-item-sliding ion-item ion-label {
   margin-left: 30%;
   max-width: 55%;
-  transition: all 0.3s ease;
   cursor: pointer;
 }
 
@@ -186,7 +160,6 @@ ion-list ion-item-sliding ion-item ion-label h2 {
 ion-list ion-item-sliding ion-item ion-button[slot="end"] {
   margin-inline-start: 2px;
   margin-inline-end: 2px;
-  transition: all 0.25s ease;
 }
 
 ion-list ion-item-sliding ion-item ion-button[slot="end"]:hover {
@@ -195,20 +168,15 @@ ion-list ion-item-sliding ion-item ion-button[slot="end"]:hover {
 
 ion-list ion-item-sliding ion-item ion-checkbox[slot="start"] {
   margin-left: 12px;
-  transition: all 0.3s ease;
+  --checkbox-checked-transform: scale(1);
 }
 
 ion-list ion-item-sliding ion-item ion-checkbox[slot="start"]:hover {
   transform: scale(1.2);
 }
 
-/* Swipe options animations */
-ion-item-options {
-  transition: all 0.3s ease;
-}
-
-ion-item-option {
-  transition: all 0.25s ease;
+ion-list ion-item-sliding ion-item ion-checkbox[slot="start"].checkbox-checked {
+  transform: scale(1);
 }
 
 /* No more tasks message */
@@ -216,7 +184,6 @@ ion-item-option {
   text-align: center;
   padding: 24px 16px;
   color: var(--ion-color-medium);
-  animation: fadeIn 0.5s ease-in-out;
 }
 
 .no-more-tasks p {
@@ -227,26 +194,12 @@ ion-item-option {
   letter-spacing: 0.5px;
 }
 
-/* Fade-in animation for list items */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Date group header */
+.date-group-header {
+  padding: 8px 16px 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ion-color-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
-
-/* Staggered animation for list items */
-ion-item-sliding {
-  animation: fadeIn 0.4s ease-out backwards;
-}
-
-ion-item-sliding:nth-child(1) { animation-delay: 0.05s; }
-ion-item-sliding:nth-child(2) { animation-delay: 0.1s; }
-ion-item-sliding:nth-child(3) { animation-delay: 0.15s; }
-ion-item-sliding:nth-child(4) { animation-delay: 0.2s; }
-ion-item-sliding:nth-child(5) { animation-delay: 0.25s; }
-ion-item-sliding:nth-child(n+6) { animation-delay: 0.3s; }

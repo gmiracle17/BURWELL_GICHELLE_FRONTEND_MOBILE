@@ -26,6 +26,7 @@ const show = async () => {
   const alert = await alertController.create({
     header: props.header,
     message: props.message,
+    cssClass: 'delete-alert',
     buttons: [
       {
         text: 'Cancel',

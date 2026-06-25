@@ -1,10 +1,5 @@
 <template>
-  <ion-modal
-    :is-open="isOpen"
-    @didDismiss="handleDismiss"
-    :initial-breakpoint="1"
-    :breakpoints="[0, 1]"
-  >
+  <ion-modal :is-open="isOpen" @didDismiss="handleDismiss" :initial-breakpoint="1" :breakpoints="[0, 1]">
     <ion-header>
       <ion-toolbar>
         <ion-title>{{ isEditMode ? 'Edit Task' : 'New Task' }}</ion-title>
@@ -30,6 +25,32 @@
         </ion-select>
       </ion-item>
 
+      <ion-item>
+        <ion-label>Due Date</ion-label>
+        <ion-note slot="end" color="medium">{{ taskDueDate ? formatDate(taskDueDate) : 'None' }}</ion-note>
+        <ion-button slot="end" fill="clear" @click="showDatePicker = true">
+          <ion-icon :icon="calendarOutline"></ion-icon>
+        </ion-button>
+      </ion-item>
+
+      <!-- Date picker modal rendered on top -->
+      <ion-modal :is-open="showDatePicker" @didDismiss="showDatePicker = false" :initial-breakpoint="1" :breakpoints="[0, 1]" class="date-picker-modal">
+        <ion-header>
+          <ion-toolbar>
+            <ion-title slot="start" class="picker-title">Pick a Due Date</ion-title>
+            <ion-buttons slot="end">
+              <ion-button color="primary" strong @click="confirmDate">Done</ion-button>
+              <ion-button color="danger" fill="clear" @click="clearDate">Clear</ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-datetime v-model="pendingDueDate" presentation="date" :show-default-buttons="false" class="full-width-datetime"></ion-datetime>
+      </ion-modal>
+
+      <ion-text v-if="error" color="danger">
+        <p class="auth-error-text">{{ error }}</p>
+      </ion-text>
+
       <ion-button expand="block" @click="handleSave" class="ion-margin-top">
         <ion-icon slot="start" :icon="isEditMode ? saveOutline : addOutline"></ion-icon>
         {{ isEditMode ? 'Save Changes' : 'Add Task' }}
@@ -50,15 +71,18 @@ import {
   IonContent,
   IonItem,
   IonLabel,
+  IonNote,
   IonInput,
   IonSelect,
   IonSelectOption,
   IonIcon,
+  IonDatetime,
 } from '@ionic/vue';
 import {
   addOutline,
   saveOutline,
   closeOutline,
+  calendarOutline,
 } from 'ionicons/icons';
 import type { Task } from '@/stores/taskStore';
 
@@ -69,38 +93,58 @@ interface Props {
 
 interface Emits {
   (e: 'close'): void;
-  (e: 'save', data: { name: string; priority: 'Low' | 'Medium' | 'High' }): void;
+  (e: 'save', data: { name: string; priority: 'Low' | 'Medium' | 'High'; dueDate?: string }): void;
 }
 
-const props = defineProps<Props>();
-const emit = defineEmits<Emits>();
+const props = defineProps<Props>()
+const emit = defineEmits<Emits>()
 
-const taskName = ref('');
-const taskPriority = ref<'Low' | 'Medium' | 'High'>('Low');
+const taskName = ref('')
+const taskPriority = ref<'Low' | 'Medium' | 'High'>('Low')
+const taskDueDate = ref<string | undefined>(undefined)
+const pendingDueDate = ref<string | undefined>(undefined)
+const showDatePicker = ref(false)
+const isEditMode = ref(false)
+const error = ref('')
 
-const isEditMode = ref(false);
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+const confirmDate = () => {
+  taskDueDate.value = pendingDueDate.value;
+  showDatePicker.value = false;
+};
+
+const clearDate = () => {
+  taskDueDate.value = undefined;
+  pendingDueDate.value = undefined;
+  showDatePicker.value = false;
+};
 
 // ResetForm to use in watchers
 const resetForm = () => {
   taskName.value = '';
   taskPriority.value = 'Low';
+  taskDueDate.value = undefined;
+  pendingDueDate.value = undefined;
+  showDatePicker.value = false;
 };
 
-// Check for task prop changes to populate form in edit mode
-watch(() => props.task, (newTask) => {
-  if (newTask) {
-    isEditMode.value = true;
-    taskName.value = newTask.name;
-    taskPriority.value = newTask.priority;
-  } else {
-    isEditMode.value = false;
-    resetForm();
-  }
-}, { immediate: true });
-
-// Check for modal open/close to reset form
+// Populate form when modal opens, reset when it closes
 watch(() => props.isOpen, (isOpen) => {
-  if (!isOpen) {
+  if (isOpen) {
+    const task = props.task;
+    if (task) {
+      isEditMode.value = true;
+      taskName.value = task.name;
+      taskPriority.value = task.priority;
+      taskDueDate.value = task.dueDate;
+      pendingDueDate.value = task.dueDate;
+    } else {
+      isEditMode.value = false;
+      resetForm();
+    }
+  } else {
     resetForm();
   }
 });
@@ -110,10 +154,16 @@ const handleDismiss = () => {
 };
 
 const handleSave = () => {
+  if (!taskName.value.trim()) {
+    error.value = 'Please enter the task name.'
+    return
+  }
+  error.value = ''
   if (taskName.value.trim()) {
     emit('save', {
       name: taskName.value,
-      priority: taskPriority.value
+      priority: taskPriority.value,
+      dueDate: taskDueDate.value
     });
     resetForm();
   }
@@ -121,31 +171,34 @@ const handleSave = () => {
 </script>
 
 <style scoped>
+.date-picker-modal {
+  --height: auto;
+  --border-radius: 16px;
+}
+
+.picker-title {
+  padding-inline-start: 16px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.full-width-datetime {
+  width: 100%;
+  max-width: 100%;
+}
+
 ion-button ion-icon {
   font-size: 1.5rem;
 }
 
-/* Smooth modal animations */
 ion-modal {
   --backdrop-opacity: 0.6;
   --border-radius: 16px;
   --box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
 }
 
-/* Smooth transitions for form elements */
 ion-item {
-  --transition: all 0.3s ease;
   margin-bottom: 12px;
-}
-
-ion-input,
-ion-select {
-  transition: all 0.3s ease;
-}
-
-ion-input:focus-within,
-ion-select:focus-within {
-  transform: scale(1.01);
 }
 
 /* Button animations */
@@ -166,6 +219,12 @@ ion-button:active {
 /* Content fade-in animation */
 ion-content {
   animation: fadeIn 0.3s ease-in-out;
+}
+
+ion-note {
+  font-size:15px;
+  margin-top:0;
+  margin-bottom: 5px;
 }
 
 @keyframes fadeIn {

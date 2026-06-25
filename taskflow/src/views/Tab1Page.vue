@@ -33,47 +33,52 @@
         </ion-chip>
       </div>
 
-      <!-- Task List -->
-      <ion-list v-if="filteredTasks.length > 0">
-        <ion-item-sliding v-for="task in filteredTasks" :key="task.id" :ref="el => setSlidingRef(task.id, el)">
-          <ion-item>
-            <ion-checkbox slot="start" :checked="task.done" @ionChange="toggleTask(task.id)"></ion-checkbox>
-            
-            <ion-avatar v-if="task.photo != null" class="task-avatar" @click="goToDetail(task.id)">
-              <img :src="task.photo" alt="" />
-            </ion-avatar>
-            <ion-avatar v-else class="task-avatar" @click="goToDetail(task.id)">
-              <img :src="defaultImage" alt="" />
-            </ion-avatar>
-            
-            <ion-label @click="goToDetail(task.id)">
-              <h2 :class="{ 'task-done': task.done }">{{ task.name }}</h2>
-              <ion-badge :color="getPriorityColor(task.priority)"> {{ task.priority }} </ion-badge>
-            </ion-label>
+      <!-- Task List grouped by due date -->
+      <template v-if="filteredTasks.length > 0">
+        <div v-for="group in groupedTasks" :key="group.date">
+          <div class="date-group-header">{{ group.date }}</div>
+          <ion-list>
+            <ion-item-sliding v-for="task in group.tasks" :key="task.id" :ref="el => setSlidingRef(task.id, el)">
+              <ion-item>
+                <ion-checkbox slot="start" :checked="task.done" @ionChange="toggleTask(task.id)"></ion-checkbox>
+                
+                <ion-avatar v-if="task.photo != null" class="task-avatar" @click="goToDetail(task.id)">
+                  <img :src="task.photo" alt="" />
+                </ion-avatar>
+                <ion-avatar v-else class="task-avatar" @click="goToDetail(task.id)">
+                  <img :src="defaultImage" alt="" />
+                </ion-avatar>
+                
+                <ion-label @click="goToDetail(task.id)">
+                  <h2 :class="{ 'task-done': task.done }">{{ task.name }}</h2>
+                  <ion-badge :color="getPriorityColor(task.priority)"> {{ task.priority }} </ion-badge>
+                </ion-label>
 
-            <ion-button slot="end" fill="clear" color="primary" @click="openEditTaskModal(task)">
-              <ion-icon :icon="createOutline"></ion-icon>
-            </ion-button>
+                <ion-button slot="end" fill="clear" color="primary" @click="openEditTaskModal(task)">
+                  <ion-icon :icon="createOutline"></ion-icon>
+                </ion-button>
 
-            <ion-button slot="end" fill="clear" color="danger" @click="confirmDelete(task.id)">
-              <ion-icon :icon="trashOutline"></ion-icon>
-            </ion-button>
-          </ion-item>
+                <ion-button slot="end" fill="clear" color="danger" @click="confirmDelete(task.id)">
+                  <ion-icon :icon="trashOutline"></ion-icon>
+                </ion-button>
+              </ion-item>
 
-          <!-- Swipe Left to delete -->
-          <ion-item-options side="end" @ionSwipe="handleSwipeDelete(task.id)">
-            <ion-item-option color="danger">
-              Delete
-            </ion-item-option>
-          </ion-item-options>
-          <!-- Swipe Right to toggle completion -->
-          <ion-item-options side="start" @ionSwipe="handleSwipeToggle(task.id)">
-            <ion-item-option color="success">
-              {{ task.done ? 'Incomplete' : 'Complete' }}
-            </ion-item-option>
-          </ion-item-options>
-        </ion-item-sliding>
-      </ion-list>
+              <!-- Swipe Left to delete -->
+              <ion-item-options side="end" @ionSwipe="handleSwipeDelete(task.id)">
+                <ion-item-option color="danger">
+                  Delete
+                </ion-item-option>
+              </ion-item-options>
+              <!-- Swipe Right to toggle completion -->
+              <ion-item-options side="start" @ionSwipe="handleSwipeToggle(task.id)">
+                <ion-item-option color="success">
+                  {{ task.done ? 'Incomplete' : 'Complete' }}
+                </ion-item-option>
+              </ion-item-options>
+            </ion-item-sliding>
+          </ion-list>
+        </div>
+      </template>
 
       <!-- No more tasks message -->
       <div v-if="filteredTasks.length > 0" class="no-more-tasks">
@@ -113,7 +118,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import {
   IonPage,
   IonHeader,
@@ -156,6 +161,11 @@ import DeleteModal from '@/components/DeleteModal.vue';
 const taskStore = useTaskStore();
 const userStore = useUserStore();
 const router = useRouter();
+
+// Load tasks on component mount
+onMounted(() => {
+  taskStore.loadTasks();
+});
 
 const goToDetail = (id: number) => {
   router.push(`/tabs/tasks/${id}`);
@@ -207,6 +217,21 @@ const filteredTasks = computed(() => {
   return filtered;
 });
 
+// Group filtered tasks by due date
+const groupedTasks = computed(() => {
+  const groups: Record<string, { label: string; sortKey: string; tasks: typeof filteredTasks.value }> = {};
+  for (const task of filteredTasks.value) {
+    const sortKey = task.dueDate ? task.dueDate.slice(0, 10) : 'zzz';
+    const label = task.dueDate
+      ? new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+      : 'No Due Date';
+    if (!groups[sortKey]) groups[sortKey] = { label, sortKey, tasks: [] };
+    groups[sortKey].tasks.push(task);
+  }
+  return Object.values(groups)
+    .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+    .map(({ label, tasks }) => ({ date: label, tasks }));
+});
 
 // Toggle task completion
 const toggleTask = (id: number) => {
@@ -232,22 +257,20 @@ const closeModal = () => {
 };
 
 // Handle save task for add and edit
-const handleSaveTask = (data: { name: string; priority: 'Low' | 'Medium' | 'High' }) => {
+const handleSaveTask = (data: { name: string; priority: 'Low' | 'Medium' | 'High'; dueDate?: string }) => {
   if (currentTask.value) {
     // Edit existing task
     taskStore.editTask(currentTask.value.id, {
       name: data.name,
-      priority: data.priority
+      priority: data.priority,
+      dueDate: data.dueDate
     });
+    if (data.dueDate === undefined) {
+      taskStore.removeDueDate(currentTask.value.id);
+    }
   } else {
     // Add new task
-    taskStore.addTask(data.name);
-    
-    // Set priority for the newly added task
-    const newTask = taskStore.tasks[taskStore.tasks.length - 1];
-    if (newTask) {
-      taskStore.setPriority(newTask.id, data.priority);
-    }
+    taskStore.addTask(data.name, data.priority, data.dueDate);
   }
   
   closeModal();

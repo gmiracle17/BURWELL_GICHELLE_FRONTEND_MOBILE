@@ -29,7 +29,7 @@
 
         <!-- Task Details Card -->
         <div class="detail-card">
-          <!-- Task ID and Due Date in 2 columns -->
+          <!-- Row 1: Task ID | Due Date -->
           <div class="detail-row detail-row-columns">
             <div class="detail-item">
               <ion-icon :icon="informationCircleOutline" class="detail-icon"></ion-icon>
@@ -43,12 +43,12 @@
               <ion-icon :icon="calendarOutline" class="detail-icon"></ion-icon>
               <div class="detail-content">
                 <span class="detail-label">Due Date</span>
-                <span class="detail-value">To follow</span>
+                <span class="detail-value">{{ task.dueDate ? new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'None' }}</span>
               </div>
             </div>
           </div>
 
-          <!-- Status and Priority in 2 columns -->
+          <!-- Row 2: Status | Priority -->
           <div class="detail-row detail-row-columns">
             <div class="detail-item">
               <ion-icon :icon="checkmarkCircleOutline" class="detail-icon"></ion-icon>
@@ -96,14 +96,6 @@
           </div>
         </div>
       </div>
-      <div v-else class="not-found">
-        <ion-icon :icon="alertCircleOutline" class="not-found-icon"></ion-icon>
-        <h2>Task Not Found</h2>
-        <p>The task you're looking for doesn't exist.</p>
-        <ion-button routerLink="/tabs/tab1">
-          Back to Tasks
-        </ion-button>
-      </div>
     </ion-content>
   </ion-page>
 </template>
@@ -132,7 +124,6 @@ import {
   flagOutline,
   calendarOutline,
   imageOutline,
-  alertCircleOutline,
   trashOutline,
   informationCircleOutline,
 } from 'ionicons/icons';
@@ -212,8 +203,7 @@ const toggleDarkMode = () => {
   flex-wrap: wrap;
 }
 
-.status-badge,
-.priority-badge {
+.status-badge, .priority-badge {
   font-size: 0.875rem;
   padding: 0.5rem 1rem;
   font-weight: 500;
