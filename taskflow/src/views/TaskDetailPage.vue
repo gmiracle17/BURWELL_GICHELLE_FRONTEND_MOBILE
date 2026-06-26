@@ -154,13 +154,13 @@ const getPriorityColor = (priority) => {
 async function capturePhoto(task) {
   if (!task) return
   try {
-    const photo = await Camera.takePhoto({
+    const photo = await Camera.getPhoto({
       quality: 80,
-      resultType: CameraResultType.Uri,
+      resultType: CameraResultType.Base64,
       source: CameraSource.Camera
     })
-    const photoPath = photo.webPath
-    addPhotoToTask(task.id, photoPath)
+    const photoData = `data:image/jpeg;base64,${photo.base64String}`
+    addPhotoToTask(task.id, photoData)
   } catch (err) {
     console.log('Camera error:', err)
   }

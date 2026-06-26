@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'io.ionic.starter',
-  appName: 'taskflow',
+  appId: 'io.ionic.starter.miracle',
+  appName: 'miracletaskflow',
   webDir: 'dist'
 };
 
