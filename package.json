@@ -1,5 +1,8 @@
 {
   "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/camera": "^8.2.0",
+    "@capacitor/preferences": "^8.0.1",
     "pinia-plugin-persistedstate": "^4.7.1"
   }
 }
